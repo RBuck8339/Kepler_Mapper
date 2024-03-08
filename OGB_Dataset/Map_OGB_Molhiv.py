@@ -79,24 +79,16 @@ nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arra
 
 # For all nodes in the dataset
 for node in range(len(dataset)):
-<<<<<<< HEAD
     #print(node) # Counter to track progress of creating embeddings
-=======
-    print(node) # Counter to track progress of creating embeddings
->>>>>>> fe1ba3e591471933aafccbefd8af25a6907bb22e
 
     # Get the embeddings for current SMILES
     atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
     tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
-<<<<<<< HEAD
-
 nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
 print(nplist_atom_embeddings.shape)
-=======
 
-nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
+#nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
 
->>>>>>> fe1ba3e591471933aafccbefd8af25a6907bb22e
 # Modify this later
 '''
 # Save node embeddings as csv file
