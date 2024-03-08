@@ -30,73 +30,91 @@ import torch
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder  # Given at start
 from ogb.utils import features  # To get my features
 from ogb.utils import mol  # To make the SMILES into a tensor
-from ogb.utils import torch_util
+from ogb.utils import torch_util  # If needed, to create numpy to tensor
 from ogb.graphproppred import PygGraphPropPredDataset  # To get my dataset to work with
 
-try:
-    from PIL import Image
-except ImportError as e:
-    print("This example requires Pillow. Run `pip install pillow` and then try again.")
-    sys.exit()
 
 # Given at start
 atom_encoder = AtomEncoder(emb_dim = 100)  # Class object
 bond_encoder = BondEncoder(emb_dim = 100)  # Class object
 
-dataset = PygGraphPropPredDataset(name='ogbg-molhiv')  # Load the dataset
+dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='\OGB_Dataset')  # Load the dataset
+
+# Read in my labels
+labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
+labels_list = labels_df['0'].to_list()  # Make into a list of labels
+
+
+
+smiles_as_graph = []
+
+smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,1]  # Get the smiles strings from the csv
+
+for string in range(len(smiles_strings)):
+    smiles_as_graph.append(mol.smiles2graph(smiles_strings[string]))
+
+'''
+# These store equivalent information, accessed in different ways
+smiles_string = mol.smiles2graph(smiles_strings[0])  # Extracts the first smile string from the series
+print(dataset[0])
+print(smiles_string)
+'''
 
 # These are my embeddings
-#print(atom_encoder(dataset[0].x))
-#print(bond_encoder(dataset[0].edge_attr))
+#print(atom_encoder(dataset[0].x))  # Atoms
+#print(bond_encoder(dataset[0].edge_attr))  # Bonds
 
 # For utility
 #print(len(atom_encoder(dataset[0].x)))
 #print(len(bond_encoder(dataset[0].edge_attr)))
 
-list_atom_embeddings = []
-list_atom_embeddings = np.array(list_atom_embeddings)
+tlist_atom_embeddings = []  # A list of atom embeddings expressed as pytorch tensors
+nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arrays
 
 #list_bond_embeddings = []
 #list_bond_embeddings = np.array(list_bond_embeddings)
 
+# For all nodes in the dataset
 for node in range(len(dataset)):
-    print(node)
+    #print(node) # Counter to track progress of creating embeddings
+
     # Get the embeddings for current SMILES
-    atom_embedding = atom_encoder(dataset[node].x)
-    #bond_embedding = bond_encoder(dataset[node].edge_attr)
+    atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
+    tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
 
-    # Convert this embedding to a numpy array
-    atom_embedding_np = atom_embedding.detach().numpy()
-    #bond_embedding_np = bond_embedding.detach().numpy()
-
-    # Add this numpy array to our list of embeddings
-    list_atom_embeddings = np.append(list_atom_embeddings, atom_embedding_np)
-    #list_bond_embeddings = np.append(list_bond_embeddings, bond_embedding_np)
-
+nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
+print(nplist_atom_embeddings.shape)
+# Modify this later
+'''
 # Save node embeddings as csv file
-df_atoms = pd.DataFrame(list_atom_embeddings, columns=['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18'])
+df_atoms = pd.DataFrame(nplist_atom_embeddings)
 pd.DataFrame.to_csv(df_atoms, 'atom_embeddings.csv')
 
 # Save edge embeddings as csv file
 # df_bonds = pd.DataFrame(list_bond_embeddings)
 # pd.DataFrame.to_csv(df_bonds, 'bond_embeddings.csv')
+'''
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
+# Starting here needs to be edited
+
 # Figure out a substitute for this to fit my atom data
 # Raw data is (0, 16), so scale to 8 bits (pillow can't handle 4-bit greyscale PNG depth)
 scaler = MinMaxScaler(feature_range=(0, 255))
-data = scaler.fit_transform(list_atom_embeddings).astype(np.float128) # Edited to accept my embeddings
+data = scaler.fit_transform(nplist_atom_embeddings).astype(np.float128) # Edited to accept my embeddings
 
-'''
+
+# Not sure what I could do with this
 tooltip_s = np.array(
     tooltip_s
 )  # need to make sure to feed it as a NumPy array, not a list
-'''
+
 
 # Fit and transform data
 projected_data = mapper.fit_transform(data, projection=sklearn.manifold.TSNE())
+
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
@@ -111,10 +129,10 @@ graph = mapper.map(
 print("Output graph examples to html")
 # Tooltips with image data for every cluster member
 mapper.visualize(
-    graph,
+    graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels,
+    color_values=labels_list,
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
@@ -124,17 +142,13 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=labels,
+    custom_tooltips=labels_list,
 ) 
-
-# Matplotlib examples
-km.draw_matplotlib(graph, layout="spring")
-plt.show()
 
 # Keep for reference
 '''
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv')  # Load the dataset
-smiles_strings = pd.read_csv('dataset\ogbg_molhiv\mapping\mol.csv\hiv.csv').iloc[:,1]  # Get the smiles strings from the csv
+smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,1]  # Get the smiles strings from the csv
 smiles_string = mol.smiles2graph(smiles_strings[0])  # Extract the first smile string from the series
 print(dataset[0])
 print(type(dataset[0].edge_attr))
@@ -142,7 +156,7 @@ print(type(smiles_string["edge_feat"]))
 smiles_node = torch_util.replace_numpy_with_torchtensor(smiles_string["node_feat"])  # Makes the smile string into a tensor
 smiles_edge = torch_util.replace_numpy_with_torchtensor(smiles_string["edge_feat"])  # Makes the smile string into a tensor
 
-# These are my embeddings
+# These are equivalent
 #print(atom_encoder(smiles_node))  # I get a single long tensor out of this
 #print(atom_encoder(dataset[0].x))
 #print(bond_encoder(smiles_edge))  # I get a single long tensor out of this
