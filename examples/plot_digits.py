@@ -34,9 +34,19 @@ except ImportError as e:
 # Load digits data
 data, labels = datasets.load_digits().data, datasets.load_digits().target
 
+print("Data is:")
+print(type(data))
+print(data)
+
+print("Labels are: ")
+print(labels)
+
 # Raw data is (0, 16), so scale to 8 bits (pillow can't handle 4-bit greyscale PNG depth)
 scaler = MinMaxScaler(feature_range=(0, 255))
 data = scaler.fit_transform(data).astype(np.uint8)
+print("Data is now: ")
+print(type(data))
+print(data[0])
 
 # Create images for a custom tooltip array
 tooltip_s = []

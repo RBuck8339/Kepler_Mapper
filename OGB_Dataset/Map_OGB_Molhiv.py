@@ -40,15 +40,12 @@ bond_encoder = BondEncoder(emb_dim = 100)  # Class object
 
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='\OGB_Dataset')  # Load the dataset
 
+print(dataset[0])
+
 # Read in my labels
 labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
 labels_list = labels_df['0'].to_list()  # Make into a list of labels
 
-
-<<<<<<< HEAD
-
-=======
->>>>>>> fe1ba3e591471933aafccbefd8af25a6907bb22e
 smiles_as_graph = []
 
 smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,1]  # Get the smiles strings from the csv
@@ -79,15 +76,15 @@ nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arra
 
 # For all nodes in the dataset
 for node in range(len(dataset)):
-    #print(node) # Counter to track progress of creating embeddings
 
     # Get the embeddings for current SMILES
     atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
     tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
-nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
-print(nplist_atom_embeddings.shape)
 
-#nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
+nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
+
+for node in tlist_atom_embeddings[0]:
+    print(node)
 
 # Modify this later
 '''
