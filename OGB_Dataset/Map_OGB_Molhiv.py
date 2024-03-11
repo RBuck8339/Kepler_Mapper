@@ -25,6 +25,7 @@ import pandas as pd
 
 import torch
 # from rdkit.Chem.rdmolfiles import MolFromSmiles
+from sklearn.preprocessing import MinMaxScaler
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder  # Given at start
 from ogb.utils import features  # To get my features
 from ogb.utils import mol  # To make the SMILES into a tensor
@@ -45,6 +46,8 @@ print(dataset[0].y)
 print(len(dataset))
 print(dataset[0].num_nodes)
 
+# Creates my graph indicators for each node
+'''
 graph_indicator_list = []
 
 for graphs in range(len(dataset)):
@@ -54,6 +57,8 @@ for graphs in range(len(dataset)):
 
 graph_indicator_df = pd.DataFrame(graph_indicator_list)
 graph_indicator_df.to_csv('Graph_Indicator.txt', sep='\t', index=False)
+'''
+
 
 # Read in my labels
 labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
@@ -66,7 +71,7 @@ smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compr
 for string in range(len(smiles_strings)):
     smiles_as_graph.append(mol.smiles2graph(smiles_strings[string]))
 
-print(smiles_as_graph[0])
+# print(smiles_as_graph[0])
 '''
 # These store equivalent information, accessed in different ways
 smiles_string = mol.smiles2graph(smiles_strings[0])  # Extracts the first smile string from the series
@@ -95,21 +100,24 @@ for node in range(len(dataset)):
     atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
     tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
 
-nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
+nplist_atom_embeddings.append(tensor.detach().numpy() for tensor in tlist_atom_embeddings)  # Convert tensors to numpy arrays and add to list
 
+nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
+
+print(type(nplist_atom_embeddings))
+print(nplist_atom_embeddings[0])
+
+labels = []
+with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
+    for line in f:
+        labels.append(f.readline())
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
 # Starting here needs to be edited
 
-# Figure out a substitute for this to fit my atom data
-# Raw data is (0, 16), so scale to 8 bits (pillow can't handle 4-bit greyscale PNG depth)
-
-
 '''
-data = fit_transform(nplist_atom_embeddings).astype(np.float256) # Edited to accept my embeddings
-
 
 # Not sure what I could do with this
 tooltip_s = np.array(
@@ -118,7 +126,9 @@ tooltip_s = np.array(
 '''
 
 # Fit and transform data
-projected_data = mapper.fit_transform(data, projection=sklearn.manifold.TSNE())
+# scaler = scaler = MinMaxScaler(feature_range=(0, 255))
+# nplist_atom_embeddings = scaler.fit_transform(nplist_atom_embeddings).astype(np.float32)
+projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
@@ -133,11 +143,11 @@ graph = mapper.map(
 print("Output graph examples to html")
 # Tooltips with image data for every cluster member
 mapper.visualize(
-    smiles_as_graph[0],
+    graph,
     #graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels_list,  # This is in the proper data structure
+    color_values=labels,  # This is in the proper data structure
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
@@ -147,7 +157,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=labels_list,
+    custom_tooltips=labels,
 ) 
 
 # Keep for reference
