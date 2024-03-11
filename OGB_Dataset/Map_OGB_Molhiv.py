@@ -20,8 +20,6 @@ import base64
 import matplotlib.pyplot as plt
 import numpy as np
 import sklearn
-from sklearn import datasets
-from sklearn.preprocessing import MinMaxScaler
 import kmapper as km
 import pandas as pd
 
@@ -37,10 +35,25 @@ from ogb.graphproppred import PygGraphPropPredDataset  # To get my dataset to wo
 # Given at start
 atom_encoder = AtomEncoder(emb_dim = 100)  # Class object
 bond_encoder = BondEncoder(emb_dim = 100)  # Class object
+# These automatically scale the data with an Xavier Uniform Distribution
 
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='\OGB_Dataset')  # Load the dataset
 
 print(dataset[0])
+print(dataset[0].y)
+
+print(len(dataset))
+print(dataset[0].num_nodes)
+
+graph_indicator_list = []
+
+for graphs in range(len(dataset)):
+    print(graphs)
+    for nodes in range(dataset[graphs].num_nodes):
+        graph_indicator_list.append(graphs + 1)
+
+graph_indicator_df = pd.DataFrame(graph_indicator_list)
+graph_indicator_df.to_csv('Graph_Indicator.txt', sep='\t', index=False)
 
 # Read in my labels
 labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
@@ -53,6 +66,7 @@ smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compr
 for string in range(len(smiles_strings)):
     smiles_as_graph.append(mol.smiles2graph(smiles_strings[string]))
 
+print(smiles_as_graph[0])
 '''
 # These store equivalent information, accessed in different ways
 smiles_string = mol.smiles2graph(smiles_strings[0])  # Extracts the first smile string from the series
@@ -83,19 +97,6 @@ for node in range(len(dataset)):
 
 nplist_atom_embeddings.append([tensor.detach().numpy() for tensor in tlist_atom_embeddings])  # Convert tensors to numpy arrays and add to list
 
-for node in tlist_atom_embeddings[0]:
-    print(node)
-
-# Modify this later
-'''
-# Save node embeddings as csv file
-df_atoms = pd.DataFrame(nplist_atom_embeddings)
-pd.DataFrame.to_csv(df_atoms, 'atom_embeddings.csv')
-
-# Save edge embeddings as csv file
-# df_bonds = pd.DataFrame(list_bond_embeddings)
-# pd.DataFrame.to_csv(df_bonds, 'bond_embeddings.csv')
-'''
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
@@ -104,25 +105,26 @@ mapper = km.KeplerMapper(verbose=2)
 
 # Figure out a substitute for this to fit my atom data
 # Raw data is (0, 16), so scale to 8 bits (pillow can't handle 4-bit greyscale PNG depth)
-scaler = MinMaxScaler(feature_range=(0, 255))
-data = scaler.fit_transform(nplist_atom_embeddings).astype(np.float128) # Edited to accept my embeddings
+
+
+'''
+data = fit_transform(nplist_atom_embeddings).astype(np.float256) # Edited to accept my embeddings
 
 
 # Not sure what I could do with this
 tooltip_s = np.array(
     tooltip_s
 )  # need to make sure to feed it as a NumPy array, not a list
-
+'''
 
 # Fit and transform data
 projected_data = mapper.fit_transform(data, projection=sklearn.manifold.TSNE())
 
-
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=15),
-    cover=km.Cover(35, 0.4),
+    clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=15),  # Min samples is mid things per node, eps is the max distance between two samples to group
+    cover=km.Cover(35, 0.4), # Second param should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
 )
 
 # I'm pretty sure that everything after here is good
@@ -131,10 +133,11 @@ graph = mapper.map(
 print("Output graph examples to html")
 # Tooltips with image data for every cluster member
 mapper.visualize(
-    graph, # original
+    smiles_as_graph[0],
+    #graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels_list,
+    color_values=labels_list,  # This is in the proper data structure
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
