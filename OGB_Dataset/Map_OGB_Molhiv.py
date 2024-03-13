@@ -32,6 +32,10 @@ from ogb.utils import mol  # To make the SMILES into a tensor
 from ogb.utils import torch_util  # If needed, to create numpy to tensor
 from ogb.graphproppred import PygGraphPropPredDataset  # To get my dataset to work with
 
+from rdkit import Chem
+from torch_geometric.utils import to_dense_adj
+import networkx as nx
+from torch_geometric.data import Data
 
 # Given at start
 atom_encoder = AtomEncoder(emb_dim = 100)  # Class object
@@ -92,48 +96,83 @@ labels_list = labels_df['0'].to_list()  # Make into a list of labels
 
 graph_indicators_list = []
 
-
 '''
 smiles_as_graph = []
 
 smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,1]  # Get the smiles strings from the csv
 
+def rdkit_mol_to_nx_graph(mol):
+  
+  Converts an RDKit molecule to a NetworkX graph.
+
+  Args:
+      mol: An RDKit molecule object.
+
+  Returns:
+      A NetworkX graph object representing the molecule.
+  
+  G = nx.Graph()
+  for atom in mol.GetAtoms():
+      G.add_node(atom.GetIdx(), atomic_num=atom.GetAtomicNum(), symbol=atom.GetSymbol())
+  for bond in mol.GetBonds():
+      begin_idx = bond.GetBeginAtomIdx()
+      end_idx = bond.GetEndAtomIdx()
+      bond_type = bond.GetBondType()
+      G.add_edge(begin_idx, end_idx, bond_type=bond_type)
+  return G
+
 for string in range(len(smiles_strings)):
-    smiles_as_graph.append(mol.smiles2graph(smiles_strings[string]))
+    print(string)
+    mol = (Chem.MolFromSmiles(smiles_strings[string]))
+    Graph = rdkit_mol_to_nx_graph(mol)
+    edge_index, edge_attr = to_dense_adj(Graph)
+    smiles_as_graph.append(torch.geometric.data.Data(edge_index=edge_index, edge_attr=edge_attr))
+    
+    adjacency_matrix = Chem.GetAdjacencyMatrix(mol, useBO=True)
+    smiles_as_graph.append(nx.to_numpy_array(adjacency_matrix))
+    #smiles_as_graph.append(nx.PlanarEmbedding(nx.Graph(adjacency_matrix)))
+    
 '''
 
 
-'''
-# These store equivalent information, accessed in different ways
-smiles_string = mol.smiles2graph(smiles_strings[0])  # Extracts the first smile string from the series
-print(dataset[0])
-print(smiles_string)
-'''
 
-# These are my embeddings
-#print(atom_encoder(dataset[0].x))  # Atoms
-#print(bond_encoder(dataset[0].edge_attr))  # Bonds
-
-# For utility
-#print(len(atom_encoder(dataset[0].x)))
-#print(len(bond_encoder(dataset[0].edge_attr)))
+# Get atom embeddings
 
 tlist_atom_embeddings = []  # A list of atom embeddings expressed as pytorch tensors
 nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arrays
-
-#list_bond_embeddings = []
+nplist_graph_embeddings = []
+graph_list = []
+list_bond_embeddings = []
 #list_bond_embeddings = np.array(list_bond_embeddings)
-print("Stop")
+
+
 # For all nodes in the dataset
 for node in range(len(dataset)):
-
+    print(node)
     # Get the embeddings for current SMILES
     atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
     tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
 
-nplist_atom_embeddings = [tensor.detach().numpy() for tensor in tlist_atom_embeddings]  # Convert tensors to numpy arrays and add to list
+    bond_embedding = bond_encoder(dataset[node].edge_attr)
 
-nplist_atom_embeddings = np.concatenate(nplist_atom_embeddings, axis=0)  # Make this into a numpy array
+
+    num_nodes = atom_embedding.shape[0]
+    embedding_dim = atom_embedding.shape[1]
+
+    # Create PyG data object
+    data = Data(x=atom_embedding, edge_index=None)  # No edge index if edges are implicit
+
+    data.edge_attr = bond_embedding
+    graph_embedding = torch.mean(data.x, dim=0)
+    graph_list.append(graph_embedding)
+
+    nplist_graph_embeddings = [tensor.detach().numpy() for tensor in graph_list]
+    nplist_graph_embeddings = np.concatenate(nplist_graph_embeddings, axis=0)
+# nplist_atom_embeddings = [tensor.detach().numpy() for tensor in tlist_atom_embeddings]  # Convert tensors to numpy arrays and add to list
+
+# nplist_atom_embeddings = np.concatenate(nplist_atom_embeddings, axis=0)  # Make this into a numpy array
+
+# I am getting graph embeddings, just need to convert these to the properly dimensioned numpy arrays
 
 
 
@@ -142,21 +181,13 @@ mapper = km.KeplerMapper(verbose=2)
 
 # Starting here needs to be edited
 
-'''
-
-# Not sure what I could do with this
-tooltip_s = np.array(
-    tooltip_s
-)  # need to make sure to feed it as a NumPy array, not a list
-'''
-
 # Fit and transform data
-projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
+projected_data = mapper.fit_transform(nplist_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=15),  # Min samples is mid things per node, eps is the max distance between two samples to group
+    clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=50),  # Min samples is mid things per node, eps is the max distance between two samples to group
     cover=km.Cover(35, 0.4), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
 )
 
@@ -171,7 +202,7 @@ mapper.visualize(
     #graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=graph_indicators_list,  # This is in the proper data structure
+    color_values=labels_list,  # This is in the proper data structure
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
@@ -181,7 +212,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=graph_indicators_list,
+    custom_tooltips=labels_list,
 ) 
 
 # Keep for reference

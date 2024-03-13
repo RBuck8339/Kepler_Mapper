@@ -290,7 +290,7 @@ class KeplerMapper(object):
         X,
         projection="sum",
         scaler="default:MinMaxScaler",
-        distance_matrix=False,
+        distance_matrix=None, # Originally False
     ):
         """Same as .project() but accepts lists for arguments so you can chain.
 
