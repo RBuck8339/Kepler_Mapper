@@ -22,10 +22,10 @@ import numpy as np
 import sklearn
 import kmapper as km
 import pandas as pd
+import json
 
 import torch
 # from rdkit.Chem.rdmolfiles import MolFromSmiles
-from sklearn.preprocessing import MinMaxScaler
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder  # Given at start
 from ogb.utils import features  # To get my features
 from ogb.utils import mol  # To make the SMILES into a tensor
@@ -40,11 +40,37 @@ bond_encoder = BondEncoder(emb_dim = 100)  # Class object
 
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='\OGB_Dataset')  # Load the dataset
 
+# Get jsons for graph2vec
+'''
 print(dataset[0])
-print(dataset[0].y)
+print(dataset[0].edge_attr)
 
-print(len(dataset))
-print(dataset[0].num_nodes)
+mydict = dataset[0].to_dict()
+print(mydict["edge_attr"])
+
+for graph in range(len(dataset)):
+    filename = f"{'GraphEmbeddings'}/{graph}.json"
+    mydict = dataset[graph].to_dict()
+
+    for key, value in mydict.items():
+        if isinstance(value, torch.Tensor):
+            mydict[key] = value.detach().numpy()
+
+    for key, value in mydict.items():
+        if isinstance(value, np.ndarray):
+            mydict[key] = value.tolist()
+
+    mydict.pop("num_nodes")
+    mydict.pop("y")
+    mydict.pop("edge_index")
+    mydict["edges"] = mydict.pop("edge_attr")
+    mydict["features"] = mydict.pop("x")
+
+    with open(filename, 'w') as outfile:
+        json.dump(mydict, outfile)
+'''
+
+
 
 # Creates my graph indicators for each node
 '''
@@ -64,14 +90,19 @@ graph_indicator_df.to_csv('Graph_Indicator.txt', sep='\t', index=False)
 labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
 labels_list = labels_df['0'].to_list()  # Make into a list of labels
 
+graph_indicators_list = []
+
+
+'''
 smiles_as_graph = []
 
 smiles_strings = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,1]  # Get the smiles strings from the csv
 
 for string in range(len(smiles_strings)):
     smiles_as_graph.append(mol.smiles2graph(smiles_strings[string]))
+'''
 
-# print(smiles_as_graph[0])
+
 '''
 # These store equivalent information, accessed in different ways
 smiles_string = mol.smiles2graph(smiles_strings[0])  # Extracts the first smile string from the series
@@ -92,7 +123,7 @@ nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arra
 
 #list_bond_embeddings = []
 #list_bond_embeddings = np.array(list_bond_embeddings)
-
+print("Stop")
 # For all nodes in the dataset
 for node in range(len(dataset)):
 
@@ -100,17 +131,11 @@ for node in range(len(dataset)):
     atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
     tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
 
-nplist_atom_embeddings.append(tensor.detach().numpy() for tensor in tlist_atom_embeddings)  # Convert tensors to numpy arrays and add to list
+nplist_atom_embeddings = [tensor.detach().numpy() for tensor in tlist_atom_embeddings]  # Convert tensors to numpy arrays and add to list
 
-nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
+nplist_atom_embeddings = np.concatenate(nplist_atom_embeddings, axis=0)  # Make this into a numpy array
 
-print(type(nplist_atom_embeddings))
-print(nplist_atom_embeddings[0])
 
-labels = []
-with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
-    for line in f:
-        labels.append(f.readline())
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
@@ -126,16 +151,15 @@ tooltip_s = np.array(
 '''
 
 # Fit and transform data
-# scaler = scaler = MinMaxScaler(feature_range=(0, 255))
-# nplist_atom_embeddings = scaler.fit_transform(nplist_atom_embeddings).astype(np.float32)
 projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
     clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=15),  # Min samples is mid things per node, eps is the max distance between two samples to group
-    cover=km.Cover(35, 0.4), # Second param should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
+    cover=km.Cover(35, 0.4), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
 )
+
 
 # I'm pretty sure that everything after here is good
 
@@ -147,7 +171,7 @@ mapper.visualize(
     #graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels,  # This is in the proper data structure
+    color_values=graph_indicators_list,  # This is in the proper data structure
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
@@ -157,7 +181,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=labels,
+    custom_tooltips=graph_indicators_list,
 ) 
 
 # Keep for reference
