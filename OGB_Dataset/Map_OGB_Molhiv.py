@@ -83,6 +83,10 @@ labels = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='
 labels = labels.to_list()
 print(labels)
 
+tooltip_s = np.array(
+    labels
+)  # need to make sure to feed it as a NumPy array, not a list
+
 '''
 smiles_as_graph = []
 
@@ -178,8 +182,9 @@ projected_data = mapper.fit_transform(nparray_graph_embeddings, projection=sklea
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.5, min_samples=1),  # Min samples is mid things per node, eps is the max distance between two samples to group
-    cover=km.Cover(4, 0.6), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
+    clusterer=sklearn.cluster.Birch(n_clusters = 5, threshold=1.0),
+    #clusterer=sklearn.cluster.DBSCAN(eps=0.7, min_samples=25),  # Min samples is mid things per node, eps is the max distance between two samples to group
+    cover=km.Cover(2, 0.8), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
 )
 
 
@@ -193,7 +198,7 @@ mapper.visualize(
     path_html="examples\output\digits_custom_tooltips.html",
     color_values=labels,  # This is in the proper data structure
     color_function_name="labels",
-    # custom_tooltips=tooltip_s,
+    custom_tooltips=tooltip_s,
 )
 
 # Tooltips with the target y-labels for every cluster member
