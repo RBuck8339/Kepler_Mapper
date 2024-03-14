@@ -75,26 +75,13 @@ for graph in range(len(dataset)):
 '''
 
 
-
-# Creates my graph indicators for each node
-'''
-graph_indicator_list = []
-
-for graphs in range(len(dataset)):
-    print(graphs)
-    for nodes in range(dataset[graphs].num_nodes):
-        graph_indicator_list.append(graphs + 1)
-
-graph_indicator_df = pd.DataFrame(graph_indicator_list)
-graph_indicator_df.to_csv('Graph_Indicator.txt', sep='\t', index=False)
-'''
-
-
 # Read in my labels
-labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
-labels_list = labels_df['0'].to_list()  # Make into a list of labels
+#labels_df = pd.read_csv('OGB_Dataset/ogbg_molhiv/raw/graph-label.csv.gz', compression='gzip') # Make pandas dataframe
+#labels_list = labels_df['0'].to_list()  # Make into a list of labels
 
-graph_indicators_list = []
+labels = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,0]  # Get the smiles strings from the csv
+labels = labels.to_list()
+print(labels)
 
 '''
 smiles_as_graph = []
@@ -141,6 +128,7 @@ for string in range(len(smiles_strings)):
 tlist_atom_embeddings = []  # A list of atom embeddings expressed as pytorch tensors
 nplist_atom_embeddings = []  # A list of atom embeddings expressed as numpy arrays
 nplist_graph_embeddings = []
+nparray_graph_embeddings = np.array([])
 graph_list = []
 list_bond_embeddings = []
 #list_bond_embeddings = np.array(list_bond_embeddings)
@@ -161,15 +149,20 @@ for node in range(len(dataset)):
 
     # Create PyG data object
     data = Data(x=atom_embedding, edge_index=None)  # No edge index if edges are implicit
-
+    
     data.edge_attr = bond_embedding
     graph_embedding = torch.mean(data.x, dim=0)
-    graph_list.append(graph_embedding)
+    np_array = graph_embedding.detach().numpy()
 
-    nplist_graph_embeddings = [tensor.detach().numpy() for tensor in graph_list]
-    nplist_graph_embeddings = np.concatenate(nplist_graph_embeddings, axis=0)
+    if(nparray_graph_embeddings.size == 0):
+        nparray_graph_embeddings = np_array
+
+    else:
+        nplist_graph_embeddings.append(np_array)
+        #nparray_graph_embeddings = np.concatenate((nparray_graph_embeddings, np_array), axis=0)
 # nplist_atom_embeddings = [tensor.detach().numpy() for tensor in tlist_atom_embeddings]  # Convert tensors to numpy arrays and add to list
-
+nparray_graph_embeddings = np.stack(nplist_graph_embeddings)
+print(nparray_graph_embeddings.shape)
 # nplist_atom_embeddings = np.concatenate(nplist_atom_embeddings, axis=0)  # Make this into a numpy array
 
 # I am getting graph embeddings, just need to convert these to the properly dimensioned numpy arrays
@@ -179,20 +172,16 @@ for node in range(len(dataset)):
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
-# Starting here needs to be edited
-
 # Fit and transform data
-projected_data = mapper.fit_transform(nplist_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
+projected_data = mapper.fit_transform(nparray_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=50),  # Min samples is mid things per node, eps is the max distance between two samples to group
-    cover=km.Cover(35, 0.4), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
+    clusterer=sklearn.cluster.DBSCAN(eps=0.5, min_samples=1),  # Min samples is mid things per node, eps is the max distance between two samples to group
+    cover=km.Cover(4, 0.6), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
 )
 
-
-# I'm pretty sure that everything after here is good
 
 # Create the visualizations (increased the graph_gravity for a tighter graph-look.)
 print("Output graph examples to html")
@@ -202,7 +191,7 @@ mapper.visualize(
     #graph, # original
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels_list,  # This is in the proper data structure
+    color_values=labels,  # This is in the proper data structure
     color_function_name="labels",
     # custom_tooltips=tooltip_s,
 )
@@ -212,7 +201,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=labels_list,
+    custom_tooltips=labels,
 ) 
 
 # Keep for reference
