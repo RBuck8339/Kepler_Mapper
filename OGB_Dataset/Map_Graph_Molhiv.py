@@ -20,7 +20,6 @@ import numpy as np
 import sklearn
 import kmapper as km
 import pandas as pd
-import json
 
 import torch
 # from rdkit.Chem.rdmolfiles import MolFromSmiles
@@ -31,7 +30,6 @@ from ogb.utils import torch_util  # If needed, to create numpy to tensor
 from ogb.graphproppred import PygGraphPropPredDataset  # To get my dataset to work with
 
 from rdkit import Chem
-from torch_geometric.utils import to_dense_adj
 import networkx as nx
 from torch_geometric.data import Data
 
@@ -50,7 +48,7 @@ So far any that I have tried have not produced meaningful results
 
 
 # Given at start
-atom_encoder = AtomEncoder(emb_dim = 50)  # Class object for node embeddings
+atom_encoder = AtomEncoder(emb_dim = 100)  # Class object for node embeddings
 bond_encoder = BondEncoder(emb_dim = 100)  # Class object for edge embeddings
 # These automatically scale the data with an Xavier Uniform Distribution
 
@@ -61,7 +59,7 @@ print(dataset[0])
 
 labels = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,0]  # Get the graph labels
 labels = labels.to_list()
-print(type(labels[0]))
+
 count_ones = labels.count(1)
 count_zeros = labels.count(0)
 
@@ -75,11 +73,10 @@ tooltip_s = np.array(
 nplist_graph_embeddings = []
 nparray_graph_embeddings = np.array([])
 graph_list = []
-'''
 
 # For all graphs in the dataset
 for graph in range(len(dataset)):
-    #print(graph)
+    #print(graph) # To show progress
     # Get the embeddings for current SMILES
     atom_embedding = atom_encoder(dataset[graph].x)  # Get the embedding of given SMILES equation
     bond_embedding = bond_encoder(dataset[graph].edge_attr)
@@ -101,32 +98,9 @@ for graph in range(len(dataset)):
     # Add the subsequent arrays
     else:
         nplist_graph_embeddings.append(np_array)
-'''
-tlist_atom_embeddings = []
-nplist_atom_embeddings = []
-for node in range(len(dataset)):
 
-    # Get the embeddings for current SMILES
-    atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
-    tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
-
-for tensor in tlist_atom_embeddings:
-    for item in tensor:
-        nplist_atom_embeddings.append(item.detach().numpy())
-
-nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
-
-print(type(nplist_atom_embeddings))
-print(nplist_atom_embeddings[0])
-
-
-labels = []
-with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
-    for line in f:
-        labels.append(line)
-
-#nparray_graph_embeddings = np.stack(nplist_graph_embeddings)  # Get the graph embeddings into one object
-#print(nparray_graph_embeddings.shape)  # Verify this worked properly
+nparray_graph_embeddings = np.stack(nplist_graph_embeddings)  # Get the graph embeddings into one object
+print(nparray_graph_embeddings.shape)  # Verify this worked properly
 
 tooltip_s = np.array(
     labels
@@ -140,20 +114,18 @@ mapper = km.KeplerMapper(verbose=2)
 
 # Fit and transform data
 #projected_data = mapper.fit_transform(nparray_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
-projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
+projected_data = mapper.fit_transform(nplist_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.4, min_samples=25),  # Min samples is mid things per node, eps is the max distance between two samples to group
-    cover=km.Cover(2, 0.5), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
+    clusterer=sklearn.cluster.KMeans(n_clusters=5, random_state=42), 
+    cover=km.Cover(10, 0.6), 
 )
 # Original clusterer
 # clusterer=sklearn.cluster.DBSCAN(eps=0.7, min_samples=25),  # Min samples is mid things per node, eps is the max distance between two samples to group
 
-# New Clusterer
-# clusterer=sklearn.cluster.Birch(n_clusters = 5, threshold=1.0),  # This is good params to get a good visualization
 
 # Create the visualizations (increased the graph_gravity for a tighter graph-look.)
 print("Output graph examples to html")
@@ -162,7 +134,7 @@ print("Output graph examples to html")
 mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
-    path_html="examples\output\digits_ylabel_tooltips.html",
+    path_html="OGB_Dataset\Visualizations\digits_ylabel_tooltips.html",
     custom_tooltips=tooltip_s,
 ) 
 
@@ -171,7 +143,7 @@ mapper.visualize(
     graph,
     #graph, # original
     title="Handwritten digits Mapper",
-    path_html="examples\output\digits_custom_tooltips.html",
+    path_html="OGB_Dataset\Visualizations\digits_custom_tooltips.html",
     color_values=labels,  
     color_function_name="labels",
     custom_tooltips=tooltip_s,

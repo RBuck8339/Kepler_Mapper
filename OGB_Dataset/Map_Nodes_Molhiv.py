@@ -44,11 +44,13 @@ Birch Clusterer seems to work best as it captures all embeddings
 DBSCAN Clusterer removes many embeddings
 
 Trying to lower embedding dimensions for nodes and seeing if this works better
+DBSCAN results in memory error
+Birch results in poor visualization
 '''
 
 
 # Given at start
-atom_encoder = AtomEncoder(emb_dim = 50)  # Class object for node embeddings
+atom_encoder = AtomEncoder(emb_dim = 60)  # Class object for node embeddings
 bond_encoder = BondEncoder(emb_dim = 100)  # Class object for edge embeddings
 # These automatically scale the data with an Xavier Uniform Distribution
 
@@ -85,22 +87,29 @@ for tensor in tlist_atom_embeddings:
 
 nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
 
-print(type(nplist_atom_embeddings))
-print(nplist_atom_embeddings[0])
+binary_labels = []
+
+print(dataset[0].num_nodes)
+
+for i  in range(len(dataset)):
+    for label in range(dataset[i].num_nodes):
+        binary_labels.append(labels[label])
+print(len(binary_labels))
+    
 
 # Stores a label mapping each node to its graph number
-labels = []
+graph_indicators = []
 with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
     for line in f:
-        labels.append(line)
+        graph_indicators.append(int(line))
 
 
-tooltip_s = np.array(
-    labels
+graph_indicators = np.array(
+    graph_indicators
 )  # need to make sure to feed it as a NumPy array, not a list
 
+print(len(graph_indicators))
 print(len(tooltip_s))
-
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
@@ -108,18 +117,15 @@ mapper = km.KeplerMapper(verbose=2)
 # Fit and transform data
 projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
-
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.DBSCAN(eps=0.5, min_samples=20),  # Min samples is mid things per node, eps is the max distance between two samples to group
-    cover=km.Cover(2, 0.6), # Second paratam should be larger than max distance from DBSCAN, first is number of hypercubes, which i find from projection 
+    clusterer=sklearn.cluster.KMeans(n_clusters=5, random_state=42), 
+    cover=km.Cover(10, 0.6), 
 )
 # Original clusterer
 # clusterer=sklearn.cluster.DBSCAN(eps=0.7, min_samples=25),  # Min samples is mid things per node, eps is the max distance between two samples to group
 
-# New Clusterer
-# clusterer=sklearn.cluster.Birch(n_clusters = 5, threshold=1.0),  # This is good params to get a good visualization
 
 # Create the visualizations (increased the graph_gravity for a tighter graph-look.)
 print("Output graph examples to html")
@@ -128,43 +134,20 @@ print("Output graph examples to html")
 mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
-    path_html="examples\output\digits_ylabel_tooltips.html",
-    custom_tooltips=tooltip_s,
+    path_html="OGB_Dataset\Visualizations\digits_ylabel_tooltips.html",
+    custom_tooltips=graph_indicators,
 ) 
 
 # Tooltips with image data for every cluster member
 mapper.visualize(
     graph,
-    #graph, # original
     title="Handwritten digits Mapper",
-    path_html="examples\output\digits_custom_tooltips.html",
-    color_values=labels,  
+    path_html="OGB_Dataset\Visualizations\digits_custom_tooltips.html",
+    color_values=binary_labels,  
     color_function_name="labels",
-    custom_tooltips=tooltip_s,
+    custom_tooltips=graph_indicators,
 )
 
-
-# From attempting atom embeddings
-'''
-for node in range(len(dataset)):
-    # Get the embeddings for current SMILES
-    atom_embedding = atom_encoder(dataset[node].x)  # Get the embedding of given SMILES equation
-    tlist_atom_embeddings.append(atom_embedding)  # Add tensor to our list of tensors
-
-nplist_atom_embeddings.append(tensor.detach().numpy() for tensor in tlist_atom_embeddings)  # Convert tensors to numpy arrays and add to list
-nplist_atom_embeddings = [tensor.detach().numpy() for tensor in tlist_atom_embeddings]  # Convert tensors to numpy arrays and add to list
-
-nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
-nplist_atom_embeddings = np.concatenate(nplist_atom_embeddings, axis=0)  # Make this into a numpy array
-
-print(type(nplist_atom_embeddings))
-print(nplist_atom_embeddings[0])
-
-labels = []
-with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
-    for line in f:
-        labels.append(f.readline())
-'''
 
 # Keep for reference
 '''

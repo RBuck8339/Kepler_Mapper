@@ -1,3 +1,0 @@
-recursive-include kmapper/templates *
-recursive-include kmapper/static *
-include README.md
