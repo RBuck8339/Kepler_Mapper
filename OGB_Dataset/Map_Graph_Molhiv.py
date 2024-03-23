@@ -117,6 +117,10 @@ mapper = km.KeplerMapper(verbose=2)
 projected_data = mapper.fit_transform(nplist_graph_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 
+
+
+
+'''
 # Create the graph (we cluster on the projected data and suffer projection loss)
 graph = mapper.map(
     projected_data,
@@ -148,6 +152,8 @@ mapper.visualize(
     color_function_name="labels",
     custom_tooltips=tooltip_s,
 )
+'''
+
 
 
 # From attempting atom embeddings
