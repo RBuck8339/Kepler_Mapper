@@ -98,6 +98,7 @@ graph_indicators = np.array(
 print(len(graph_indicators))
 print(len(tooltip_s))
 
+
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
@@ -130,7 +131,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="OGB_Dataset\Visualizations\digits_custom_tooltips.html",
-    color_values=binary_labels,  
+    color_values=binary_labels,
     color_function_name="labels",
     custom_tooltips=graph_indicators,
 )

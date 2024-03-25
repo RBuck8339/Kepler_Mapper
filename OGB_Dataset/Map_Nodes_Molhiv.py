@@ -50,16 +50,15 @@ Birch results in poor visualization
 
 
 # Given at start
-atom_encoder = AtomEncoder(emb_dim = 60)  # Class object for node embeddings
-bond_encoder = BondEncoder(emb_dim = 100)  # Class object for edge embeddings
+atom_encoder = AtomEncoder(emb_dim = 40)  # Class object for node embeddings
 # These automatically scale the data with an Xavier Uniform Distribution
 
-dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='\OGB_Dataset')  # Load the dataset
+dataset = PygGraphPropPredDataset(name='ogbg-molhiv',root='/OGB_Dataset')  # Load the dataset
 print(dataset[0])
 
 # Generate labels for graph
 
-labels = pd.read_csv('OGB_Dataset\ogbg_molhiv\mapping\mol.csv.gz', compression='gzip').iloc[:,0]  # Get the graph labels
+labels = pd.read_csv('C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/OGB_Dataset/ogbg_molhiv/mapping/mol.csv.gz', compression='gzip').iloc[:,0]  # Get the graph labels
 labels = labels.to_list()
 
 total_ones = labels.count(1)
@@ -68,11 +67,16 @@ total_zeros = labels.count(0)
 print("Number of 1s:", total_ones)  # display number of ones in the dataset
 print("Number of 0s:", total_zeros)  # display number of zeros in the dataset
 
-tooltip_s = np.array(
-    labels
-)  # need to make sure to feed it as a NumPy array, not a list
+# Generate labels for visualization
+binary_labels = []
 
+for i in range(len(dataset)):
+    for label in range(dataset[i].num_nodes):
+        binary_labels.append(labels[label])
+    
+tooltip_s = np.array(binary_labels)
 
+# Generate embeddings for all nodes in dataset
 tlist_atom_embeddings = []
 nplist_atom_embeddings = []
 for node in range(len(dataset)):
@@ -87,29 +91,6 @@ for tensor in tlist_atom_embeddings:
 
 nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
 
-binary_labels = []
-
-print(dataset[0].num_nodes)
-
-for i  in range(len(dataset)):
-    for label in range(dataset[i].num_nodes):
-        binary_labels.append(labels[label])
-print(len(binary_labels))
-    
-
-# Stores a label mapping each node to its graph number
-graph_indicators = []
-with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
-    for line in f:
-        graph_indicators.append(int(line))
-
-
-graph_indicators = np.array(
-    graph_indicators
-)  # need to make sure to feed it as a NumPy array, not a list
-
-tooltip_s = np.array(binary_labels)
-
 
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
@@ -119,10 +100,34 @@ projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn
 
 graph = mapper.map(
     projected_data,
-    clusterer=sklearn.cluster.KMeans(n_clusters=5, random_state=42),
-    #clusterer=sklearn.cluster.DBSCAN(eps=0.5, min_samples=25),
-    cover=km.Cover(n_cubes=10, perc_overlap=0.6))  
+    #clusterer=sklearn.cluster.KMeans(n_clusters=5, random_state=42, n_init=1),
+    #clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=50),
+    clusterer=sklearn.cluster.OPTICS(min_samples=50),
+    #cover=km.Cover(10, 0.6))
+    cover=km.Cover(n_cubes=5, perc_overlap=0.4))
 # Creat a networkX graph for TDA mapper graph, in this graph nodes will be the clusters and the node featre would be the cluster size
+
+# Create the visualizations (increased the graph_gravity for a tighter graph-look.)
+#print("Output graph examples to html")
+
+# Tooltips with the target y-labels for every cluster member
+
+mapper.visualize(
+    graph,
+    title="Handwritten digits Mapper",
+    path_html="C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/OGB_Dataset/Visualizations/digits_ylabel_tooltips.html",
+    custom_tooltips=tooltip_s,
+) 
+
+# Tooltips with image data for every cluster member
+mapper.visualize(
+    graph,
+    title="Handwritten digits Mapper",
+    path_html="C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/OGB_Dataset/Visualizations/digits_custom_tooltips.html",
+    color_values=binary_labels,  
+    color_function_name="labels",
+    custom_tooltips=tooltip_s,
+)
 
 # removing all the nodes without any edges (Just looking at the links) # You can change the logic based on your needs 
 
@@ -134,18 +139,14 @@ for key in graph_copy["nodes"].keys():
     for value in range(len(graph_copy["nodes"][key])):
         graph_copy["nodes"][key][value] = str(binary_labels[graph_copy["nodes"][key][value]])
 
-
     
-total_nodes = 0
 total_ones = 0
 total_zeros = 0
 
 for key in graph_copy["nodes"]:
-    total_nodes += len(graph_copy["nodes"][key])
     total_ones += graph_copy["nodes"][key].count("1")
     total_zeros += graph_copy["nodes"][key].count("0")
 
-print("Total Nodes is: ", total_nodes)
 print("Total Ones is: ", total_ones)
 print("Total Zeros is: ", total_zeros)
 
@@ -155,9 +156,6 @@ for key in graph_copy["nodes"]:
     print(key, " size is: ", len(graph_copy["nodes"][key]))
     ones_in_cluster = graph_copy["nodes"][key].count("1")
     zeros_in_cluster = graph_copy["nodes"][key].count("0")
-
-    #nodes_in_cluster = len(graph_copy["nodes"][key])
-    #nodes_not_in_cluster = total_nodes - nodes_in_cluster
 
     ones_not_in_cluster = total_ones - ones_in_cluster
     zeros_not_in_cluster = total_zeros - zeros_in_cluster
@@ -181,7 +179,10 @@ columns = ["key", "number of ones", "number of zeros", "odds ratio"]
 # Create DataFrame from list of tuples
 nodes_df = pd.DataFrame(list_nodes_info, columns=columns)
 nodes_df = nodes_df.sort_values(by='odds ratio', ascending=False)
-nodes_df.to_csv('OddsRatio2.csv', index=False)
+nodes_df.to_csv('C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/OddsRatioInit1(2).csv', index=False)
+
+
+
 
 '''
 #From Kiarash
@@ -209,31 +210,6 @@ graph = mapper.map(
 '''
 
 
-
-
-
-# Create the visualizations (increased the graph_gravity for a tighter graph-look.)
-#print("Output graph examples to html")
-
-# Tooltips with the target y-labels for every cluster member
-
-
-# Tooltips with image data for every cluster member
-mapper.visualize(
-    graph,
-    title="Handwritten digits Mapper",
-    path_html="OGB_Dataset\Visualizations\digits_custom_tooltips.html",
-    color_values=binary_labels,  
-    color_function_name="labels",
-    custom_tooltips=graph_indicators,
-)
-
-mapper.visualize(
-    graph,
-    title="Handwritten digits Mapper",
-    path_html="OGB_Dataset\Visualizations\digits_ylabel_tooltips.html",
-    custom_tooltips=graph_indicators,
-) 
 
 
 # Keep for reference
