@@ -55,9 +55,7 @@ count_zeros = labels.count(0)
 print("Number of 1s:", count_ones)  # display number of ones in the dataset
 print("Number of 0s:", count_zeros)  # display number of zeros in the dataset
 
-tooltip_s = np.array(
-    labels
-)  # need to make sure to feed it as a NumPy array, not a list
+
 
 
 tlist_atom_embeddings = []
@@ -90,6 +88,9 @@ with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
     for line in f:
         graph_indicators.append(int(line))
 
+tooltip_s = np.array(
+    binary_labels
+)  # need to make sure to feed it as a NumPy array, not a list
 
 graph_indicators = np.array(
     graph_indicators
@@ -123,7 +124,7 @@ mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
     path_html="OGB_Dataset\Visualizations\digits_ylabel_tooltips.html",
-    custom_tooltips=graph_indicators,
+    custom_tooltips=tooltip_s,
 ) 
 
 # Tooltips with image data for every cluster member
@@ -133,7 +134,7 @@ mapper.visualize(
     path_html="OGB_Dataset\Visualizations\digits_custom_tooltips.html",
     color_values=binary_labels,
     color_function_name="labels",
-    custom_tooltips=graph_indicators,
+    custom_tooltips=tooltip_s,
 )
 
 
