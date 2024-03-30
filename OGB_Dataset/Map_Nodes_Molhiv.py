@@ -121,7 +121,7 @@ graph = mapper.map(
 mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
-    path_html=dir + "Outputs\Visualizations\digits_ylabel_tooltips.htmll",
+    path_html=dir + "Outputs\Visualizations\digits_ylabel_tooltips.html",
     custom_tooltips=tooltip_s,
 ) 
 
@@ -233,11 +233,11 @@ for key, values in graph_copy["nodes"].items():
 
 num_nodes_cluster_df = pd.DataFrame(columns=columns)
 
-for graph in range(len(dataset)):
+for num in range(len(dataset)):
     new_row = []
-    new_row.append(graph)
+    new_row.append(num)
     for key in graph_copy["nodes"].keys():
-        new_row.append((graph_copy["nodes"][key]).count(graph))
+        new_row.append((graph_copy["nodes"][key]).count(num))
     num_nodes_cluster_df.loc[len(num_nodes_cluster_df)] = new_row
     
 num_nodes_cluster_df.to_csv('Outputs\GraphNodeDistributions.csv', index=False)  
@@ -249,7 +249,7 @@ new_graph = graph  # Reset graph_copy
 # Prints out all nodes in their clusters with their node labels, what I think I will want to do is, for each node in node,
 #  then give them their graph label from the txt file
 
-for key in list(new_graph["nodes"].keys()):
+for key in (new_graph["nodes"]):
     for value in range(len(list(new_graph["nodes"][key]))):
         new_graph["nodes"][key][value] = str(binary_labels[new_graph["nodes"][key][value]])
 
@@ -288,7 +288,7 @@ columns = ["key", "number of ones", "number of zeros", "odds ratio"]
 # Create DataFrame from list of tuples
 nodes_df = pd.DataFrame(list_nodes_info, columns=columns)
 nodes_df = nodes_df.sort_values(by='odds ratio', ascending=False)
-nodes_df.to_csv(dir + 'Outputs\OddsRatio.csv', index=False)
+nodes_df.to_csv(dir + 'Outputs\OddsRatio.csv')
 
 print("Wrote Odds Ratios to: Outputs\OddsRatio.csv")
 
