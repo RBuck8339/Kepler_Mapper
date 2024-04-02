@@ -37,6 +37,8 @@ from torch_geometric.utils import to_dense_adj
 import networkx as nx
 from torch_geometric.data import Data
 
+from sklearn.model_selection import GridSearchCV
+
 dir='C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/'
 
 
@@ -101,14 +103,30 @@ nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
+'''
+KMeans = sklearn.cluster.KMeans()
+
+n_clusters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15]
+projection = [sklearn.manifold.TSNE(), sklearn.manifold.SpectralEmbedding(), sklearn.manifold.MDS()]
+random_state = [20, 42, 60, 80, 100]
+n_init = [1, 2, 3, 4, 5, 6, 7]
+
+random_grid = {'n_clusters': n_clusters,
+               'random_state': random_state,
+               'n_init': n_init}
+
 # Fit and transform data
+grid_result = GridSearchCV(estimator=KMeans, param_grid=random_grid, cv=3, verbose=2, n_jobs=-1)
+'''
+
+
+
 projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 graph = mapper.map(
     projected_data,
     clusterer=sklearn.cluster.KMeans(n_clusters=10, random_state=42, n_init=1),
-    #clusterer=sklearn.cluster.DBSCAN(eps=0.3, min_samples=50),
-    #clusterer=sklearn.cluster.OPTICS(min_samples=50),
+    #clusterer=grid_result,
     cover=km.Cover(10, 0.6))
     #cover=km.Cover(n_cubes=5, perc_overlap=0.4))
 # Creat a networkX graph for TDA mapper graph, in this graph nodes will be the clusters and the node featre would be the cluster size
@@ -215,6 +233,84 @@ count_graph_nodes_df.to_csv('Outputs\ClusterSizes.csv', index=False)
 
 print("Wrote dataframe containing cluster sizes to Outputs\ClusterSizes.csv")
   
+list_sizes = ["1-5 nodes", "6-9 nodes", "10-12 nodes", "13-14 nodes", "15 nodes", "16 nodes", "17 nodes", "18 nodes", "19 nodes", "20 nodes", "21 nodes", "22 nodes", 
+              "23 nodes", "24 nodes", "25 nodes", "26 nodes", "27 nodes", "28 nodes", "29 nodes", "30 nodes", "31 nodes", "32 nodes", "33 nodes", "34 nodes", "35 nodes", 
+              "36-38 nodes", "39-40 nodes", "41-43 nodes", "44-45 nodes", "46+ nodes"]
+
+list_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0]
+
+for i in range(len(dataset)):
+    if dataset[i].num_nodes > 0 and dataset[i].num_nodes <= 5:
+        list_vals[0] = list_vals[0] + 1
+    elif dataset[i].num_nodes > 5 and dataset[i].num_nodes <= 9:
+        list_vals[1] = list_vals[1] + 1
+    elif dataset[i].num_nodes > 9 and dataset[i].num_nodes <= 12:
+        list_vals[2] = list_vals[2] + 1
+    elif dataset[i].num_nodes > 12 and dataset[i].num_nodes <= 14:
+        list_vals[3] = list_vals[3] + 1
+    elif dataset[i].num_nodes == 15:
+        list_vals[4] = list_vals[4] + 1
+    elif dataset[i].num_nodes == 16:
+        list_vals[5] = list_vals[5] + 1
+    elif dataset[i].num_nodes == 17:
+        list_vals[6] = list_vals[6] + 1
+    elif dataset[i].num_nodes == 18:
+        list_vals[7] = list_vals[7] + 1
+    elif dataset[i].num_nodes == 19:
+        list_vals[8] = list_vals[8] + 1
+    elif dataset[i].num_nodes == 20:
+        list_vals[9] = list_vals[9] + 1
+    elif dataset[i].num_nodes == 21:
+        list_vals[10] = list_vals[10] + 1
+    elif dataset[i].num_nodes == 22:
+        list_vals[11] = list_vals[11] + 1
+    elif dataset[i].num_nodes == 23:
+        list_vals[12] = list_vals[12] + 1
+    elif dataset[i].num_nodes == 24:
+        list_vals[13] = list_vals[13] + 1
+    elif dataset[i].num_nodes == 25:
+        list_vals[14] = list_vals[14] + 1
+    elif dataset[i].num_nodes == 26:
+        list_vals[15] = list_vals[15] + 1
+    elif dataset[i].num_nodes == 27:
+        list_vals[16] = list_vals[16] + 1
+    elif dataset[i].num_nodes == 28:
+        list_vals[17] = list_vals[17] + 1
+    elif dataset[i].num_nodes == 29:
+        list_vals[18] = list_vals[18] + 1
+    elif dataset[i].num_nodes == 30:
+        list_vals[19] = list_vals[19] + 1
+    elif dataset[i].num_nodes == 31:
+        list_vals[20] = list_vals[20] + 1
+    elif dataset[i].num_nodes == 32:
+        list_vals[21] = list_vals[21] + 1
+    elif dataset[i].num_nodes == 33:
+        list_vals[22] = list_vals[22] + 1
+    elif dataset[i].num_nodes == 34:
+        list_vals[23] = list_vals[23] + 1
+    elif dataset[i].num_nodes == 35:
+        list_vals[24] = list_vals[24] + 1    
+    elif dataset[i].num_nodes > 35 and dataset[i].num_nodes <= 38:
+        list_vals[25] = list_vals[25] + 1
+    elif dataset[i].num_nodes > 39 and dataset[i].num_nodes <= 40:
+        list_vals[27] = list_vals[26] + 1
+    elif dataset[i].num_nodes > 40 and dataset[i].num_nodes <= 43:
+        list_vals[28] = list_vals[27] + 1    
+    elif dataset[i].num_nodes > 43 and dataset[i].num_nodes <= 45:
+        list_vals[29] = list_vals[28] + 1
+    elif dataset[i].num_nodes > 45:
+        list_vals[30] = list_vals[29] + 1    
+
+count_node_sizes_dict = dict(zip(list_sizes, list_vals))
+
+index = ["num_occurrances"]
+count_graph_nodes_df = pd.DataFrame(count_node_sizes_dict, index=index) 
+
+count_graph_nodes_df.to_csv('Outputs\GraphSizes.csv', index=False)
+
+print("Wrote dataframe containing graph sizes to Outputs\GraphSizes.csv")
+  
+
 graph_copy = graph
 
 graph_indicators = []
@@ -225,6 +321,7 @@ with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
 # Get all column names
 columns = ["graph number"]
 columns = columns + list(graph["nodes"].keys())
+columns = columns + ["Graph Label"]
 
 # Modify the graph_copy to have graph indicators so we can count where the nodes appear
 for key, values in graph_copy["nodes"].items():
@@ -238,6 +335,7 @@ for num in range(len(dataset)):
     new_row.append(num)
     for key in graph_copy["nodes"].keys():
         new_row.append((graph_copy["nodes"][key]).count(num))
+    new_row.append(dataset[num].y)
     num_nodes_cluster_df.loc[len(num_nodes_cluster_df)] = new_row
     
 num_nodes_cluster_df.to_csv('Outputs\GraphNodeDistributions.csv', index=False)  
