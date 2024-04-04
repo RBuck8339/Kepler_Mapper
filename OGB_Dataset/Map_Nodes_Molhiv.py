@@ -104,28 +104,11 @@ nplist_atom_embeddings = np.asarray(nplist_atom_embeddings)
 # Initialize the mapper object
 mapper = km.KeplerMapper(verbose=2)
 
-'''
-KMeans = sklearn.cluster.KMeans()
-
-n_clusters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15]
-projection = [sklearn.manifold.TSNE(), sklearn.manifold.SpectralEmbedding(), sklearn.manifold.MDS()]
-random_state = [20, 42, 60, 80, 100]
-n_init = [1, 2, 3, 4, 5, 6, 7]
-
-random_grid = {'n_clusters': n_clusters,
-               'random_state': random_state,
-               'n_init': n_init}
-
-# Fit and transform data
-grid_result = GridSearchCV(estimator=KMeans, param_grid=random_grid, cv=3, verbose=2, n_jobs=-1)
-'''
-
 projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
 folder_dir = dir + "ForKiarash"
 createFolder(folder_dir)
-createFolder(folder_dir + "/Visualizations")
-copyFile(folder_dir + "/Visualizations", html_template)
+copyFile(folder_dir, html_template)
 folder_dir = folder_dir + "/"
 
 graph = mapper.map(
@@ -134,16 +117,12 @@ graph = mapper.map(
     # clusterer=grid_result,
     cover=km.Cover(10, 0.6))
 # cover=km.Cover(n_cubes=5, perc_overlap=0.4))
-# Creat a networkX graph for TDA mapper graph, in this graph nodes will be the clusters and the node featre would be the cluster size
-
-# Create the visualizations (increased the graph_gravity for a tighter graph-look.)
-# print("Output graph examples to html")
 
 # Tooltips with image data for every cluster member
 mapper.visualize(
     graph,
     title="Handwritten digits Mapper",
-    path_html=folder_dir + "Visualizations/digits_custom_tooltips.html",
+    path_html=folder_dir + "digits_custom_tooltips.html",
     color_values=binary_labels,
     color_function_name="labels",
     custom_tooltips=tooltip_s,
