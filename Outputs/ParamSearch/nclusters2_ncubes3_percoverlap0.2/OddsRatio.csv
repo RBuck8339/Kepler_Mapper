@@ -1,0 +1,8 @@
+,key,number of ones,number of zeros,odds ratio
+2,cube2_cluster0,2,15,1.788661982140243
+1,cube1_cluster0,1,13,1.0319083236121596
+3,cube3_cluster0,36074,480362,1.014692311250599
+4,cube3_cluster1,36717,495969,0.9861098303377399
+5,cube4_cluster0,72,1114,0.866893413443973
+0,cube0_cluster0,0,6,0.0
+6,cube4_cluster1,0,4,0.0
