@@ -106,6 +106,7 @@ mapper = km.KeplerMapper(verbose=2)
 
 projected_data = mapper.fit_transform(nplist_atom_embeddings, projection=sklearn.manifold.TSNE(), scaler=None)
 
+'''
 folder_dir = dir + "ForKiarash"
 createFolder(folder_dir)
 copyFile(folder_dir, html_template)
@@ -139,11 +140,10 @@ num_members_df.to_csv(folder_dir + 'NumMembers.csv', index=False)
 
 print("Wrote dataframe containing number of members in each cluster to: Outputs/NumMembers.csv")
 
-'''
 count_nodes_keys = graph["nodes"].keys()
 members_df = pd.DataFrame(graph_memberships, columns=count_nodes_keys)
 members_df.to_csv()
-'''
+
 
 count_graph_nodes_dict = dict.fromkeys(graph["nodes"].keys())
 
@@ -364,12 +364,19 @@ nodes_df = nodes_df.sort_values(by='odds ratio', ascending=False)
 nodes_df.to_csv(folder_dir + 'OddsRatio.csv')
 
 print("Wrote Odds Ratios to: " + folder_dir + "OddsRatio.csv")
+'''
+dir = 'C:/Users/ronan/OneDrive/Documents/GitHub/test/Kepler_Mapper/'
+html_template = dir + "Outputs\Visualizations\TDAMapperNodesMolhiv.html"
 
-for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
-    for j in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
-        for k in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+for t in [2, 3, 4]:
+    for j in [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]:
+        for k in [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]:
 
-            folder_dir = dir + "Outputs/ParamSearch/nclusters" + str(i) + "_ncubes" + str(j) + "_percoverlap" + str(k)
+            if t == 2 or t == 3 or (t == 4 and (j == 1 or j == 2 or j == 3 or j == 4 or j == 5 or j == 6 or j == 7 or j == 8 or j == 9 or j == 10 or j == 11 or j == 12 or j == 13 or j == 14 and k < 0.2 or j == 14 and k >= 0.5)):
+                print("Skipping iteration: nclusters = " + str(t) + ", n_cubes = " + str(j) + ", percent overlap = " + str(k))
+                continue
+
+            folder_dir = dir + "Outputs/ParamSearch/nclusters" + str(t) + "_ncubes" + str(j) + "_percoverlap" + str(k)
 
             createFolder(folder_dir)
 
@@ -380,7 +387,7 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
 
             graph = mapper.map(
                 projected_data,
-                clusterer=sklearn.cluster.KMeans(n_clusters=i, random_state=42, n_init=1),
+                clusterer=sklearn.cluster.KMeans(n_clusters=t, random_state=42, n_init=1),
                 # clusterer=grid_result,
                 cover=km.Cover(j, k))
             # cover=km.Cover(n_cubes=5, perc_overlap=0.4))
@@ -389,7 +396,7 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
             mapper.visualize(
                 graph,
                 title="Handwritten digits Mapper",
-                path_html=folder_dir + "Visualizations/digits_custom_tooltips.html",
+                path_html=folder_dir + "Visualizations/TDAMapperNodesMolhiv.html",
                 color_values=binary_labels,
                 color_function_name="labels",
                 custom_tooltips=tooltip_s,
@@ -406,11 +413,15 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
 
             print("Wrote dataframe containing number of members in each cluster to: " + folder_dir + "NumMembers.csv")
 
-            '''
-            count_nodes_keys = graph["nodes"].keys()
-            members_df = pd.DataFrame(graph_memberships, columns=count_nodes_keys)
-            members_df.to_csv()
-            '''
+            new_columns = ["num_nodes", "graph_label"]
+            num_nodes_per_graph = []
+            for x in range(len(dataset)):
+                new_graph = []
+                new_graph.append(dataset[x].num_nodes)
+                new_graph.append(dataset[x].y.item())
+                num_nodes_per_graph.append(new_graph)
+
+            num_nodes_per_graph_df = pd.DataFrame(num_nodes_per_graph, columns=new_columns)
 
             count_graph_nodes_dict = dict.fromkeys(graph["nodes"].keys())
 
@@ -558,7 +569,7 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
             graph_copy = graph
 
             graph_indicators = []
-            with open('OGB_Dataset\Created_Files\Graph_Indicator.txt', "r") as f:
+            with open(dir + 'OGB_Dataset/Created_Files/Graph_Indicator.txt', "r") as f:
                 for line in f:
                     graph_indicators.append(int(line))
 
@@ -569,8 +580,8 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
 
             # Modify the graph_copy to have graph indicators so we can count where the nodes appear
             for key, values in graph_copy["nodes"].items():
-                for i in range(len(values)):
-                    values[i] = graph_indicators[values[i] - 1]
+                for p in range(len(values)):
+                    values[p] = graph_indicators[values[p] - 1]
 
             num_nodes_cluster_df = pd.DataFrame(columns=columns)
 
@@ -621,7 +632,7 @@ for i in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
 
                 list_nodes_info.append((key, ones_in_cluster, zeros_in_cluster, odds_ratio))
 
-            # Define column names (optional, but recommended)
+            # Define column names
             columns = ["key", "number of ones", "number of zeros", "odds ratio"]
 
             # Create DataFrame from list of tuples
