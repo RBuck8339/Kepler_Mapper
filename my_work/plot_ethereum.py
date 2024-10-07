@@ -66,9 +66,7 @@ for timestamp in timestamps:
     print("Output graph examples to html")
 
     # Set the node IDs as tooltips
-    custom_tooltips = [str(node_id) for node_id in node_ids]  # Use node IDs as tooltips
-
-    print(type(custom_tooltips))
+    custom_tooltips = [str(node_id) for node_id in node_ids]  # Use node IDs as tooltips  # Gotta fix
 
     # Check for output directory
     prepend = "my_work/Outputs/"
