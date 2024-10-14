@@ -31,10 +31,10 @@ for timestamp in timestamps:
         # Generate embeddings
         for idx, row in curr_data.iterrows():
             curr_graph.add_edge(row['source'], row['destination'], value=row['weight'])
-        
+        '''
         if(curr_graph.number_of_nodes() <= 30):
             print(f"Skipping {str(timestamp)}")
-            continue
+            continue'''
         
         print(f"Num nodes: {curr_graph.number_of_nodes()}")
         
@@ -64,7 +64,7 @@ for timestamp in timestamps:
             mapper = km.KeplerMapper(verbose=2)
 
             # Fit and transform embeddings data using t-SNE for better visualization
-            projected_data = mapper.fit_transform(embeddings, projection=sklearn.manifold.TSNE())
+            projected_data = mapper.fit_transform(embeddings, projection=sklearn.manifold.TSNE())  # Try to use UMAP
             
             graph = mapper.map(
                 projected_data,
@@ -142,4 +142,17 @@ for timestamp in timestamps:
         
     except:
         print(f"Didn't work for timestamp: {timestamp}")
+
+        
 # Reference code https://github.com/cakcora/MultiverseJ/blob/master/python/MultiverseBinaryCode.py 
+
+
+'''
+Save the weights
+Save the number of nodes in each cluster on the diagonals
+Run HTGN on the output from TDAMapper on all datasets(meet with Kiarash about this)
+Try HTGN myself, HTGN has trianing, validation, and task period (75/15/15)
+Get results of the original networkx graphs vs the mapper graphs (Keep using Node2Vec for now, or try a GNN, or structural encodings, graphpulse has structural encodings stuff already)
+Can work on map parameters at a different time, not currently
+Try using simplified gnn like anygraph uses, a not trainable gnn
+'''

@@ -5,7 +5,7 @@ from node2vec import Node2Vec
 from networkx.drawing.nx_pydot import graphviz_layout
 from sklearn.decomposition import TruncatedSVD
 
-prepend = 'my_work/Outputs/SVD/'
+prepend = 'my_work/Outputs/SVDnoDisconnects/'
 
 def createGraph(curr_data):
     curr_graph = nx.DiGraph()
@@ -13,8 +13,11 @@ def createGraph(curr_data):
     # Generate embeddings
     for idx, row in curr_data.iterrows():
         curr_graph.add_edge(row['source'], row['destination'], value=row['weight'])
+
+    connected_nodes = [node for node in curr_graph.nodes() if curr_graph.degree(node) > 0]
+    subgraph = curr_graph.subgraph(connected_nodes)
         
-    return curr_graph
+    return subgraph
 
 
 def performSVD(graph, num_values, timestamp):
