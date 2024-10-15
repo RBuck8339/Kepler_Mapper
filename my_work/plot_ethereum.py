@@ -122,6 +122,7 @@ for timestamp in timestamps:
         # Create adjacency matrix
         links = graph['links']
         nodes = list(graph['nodes'].keys()) 
+        
 
         # Initialize adjacency matrix
         num_nodes = len(nodes)
@@ -135,6 +136,13 @@ for timestamp in timestamps:
                 # Set the value in the adjacency matrix to 1 for each edge
                 adj_matrix[i, j] = 1
                 adj_matrix[j, i] = 1  
+                
+        # Make the diagonals the cluster sizes
+        for cluster_id, node_list in graph['nodes'].items():
+            cluster_size = len(node_list)
+            for node in node_list:
+                node_idx = node_to_idx[node]
+                adj_matrix[node_idx, node_idx] = cluster_size
 
         # Save as csv
         adj_df = pd.DataFrame(adj_matrix, index=nodes, columns=nodes)
