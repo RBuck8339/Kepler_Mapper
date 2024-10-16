@@ -12,6 +12,20 @@ from node2vec import Node2Vec
 from networkx.drawing.nx_pydot import graphviz_layout
 
 
+# Creates a networkx graph from the tda graph
+def createNxGraph(graph):
+    nx_graph = nx.Graph()
+    
+    # Add nodes and cluster size attribute
+    for node, cluster in graph['nodes'].items():
+        nx_graph.add_node(node, size=len(cluster))
+
+    # Add edges to the graph
+    for edge in graph['links']:
+        nx_graph.add_edge(edge[0], edge[1])
+    
+    return nx_graph
+
 # Read data
 data = pd.read_csv('my_work/ARC_edgelist.csv')
 data = data[['source', 'destination', 'weight', 'date']]
